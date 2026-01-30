@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ticket NAVIX</title>
+
+<!--Bootstrap 5-->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+    body{
+        margin: 0;
+        padding: 25px;
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg,#D5C4BC 0%,#995E8E 40%,#F08BB0 100%);
+    }
+
+    .ticket{
+        max-width: 650px;
+        margin: auto;
+        padding: 25px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+        border-left: 8px solid #995E8E;
+        animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h2{
+        margin-top: 0;
+        color: #8b4e7f;
+        text-align: center;
+        font-size: 26px;
+    }
+
+    .section-title{
+        margin: 20px 0 8px;
+        font-weight: bold;
+        font-size: 16px;
+        color: #6b3570;
+        border-bottom: 2px solid #e8d4f0;
+        padding-bottom: 4px;
+    }
+
+    .block{
+        background: #faf5ff;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border-left: 4px solid #995E8E;
+        margin-bottom: 14px;
+    }
+
+    .productos{
+        margin-top: 8px;
+        background: #fff5fb;
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .totales-final{
+        padding: 14px;
+        background: #fff9f9;
+        border-radius: 10px;
+        border-left: 4px solid #995E8E;
+        font-weight: 900;
+        font-size: 16px;
+        text-align: right;
+    }
+
+    .small { font-size: 13px; color: #444; }
+
+    /*Estilos para el modal*/
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-box {
+        background: white;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+        max-width: 450px;
+        width: 90%;
+        animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-box h3 {
+        margin-top: 0;
+        color: #995E8E;
+        font-size: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .modal-box input[type="email"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 15px;
+        transition: border-color 0.3s;
+    }
+
+    .modal-box input[type="email"]:focus {
+        outline: none;
+        border-color: #995E8E;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .modal-buttons button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-enviar {
+        background: #995E8E;
+        color: white;
+    }
+
+    .btn-enviar:hover {
+        background: #7d4a72;
+    }
+
+    .btn-cancelar {
+        background: #e0e0e0;
+        color: #333;
+    }
+
+    .btn-cancelar:hover {
+        background: #c0c0c0;
+    }
+
+</style>
+</head>
+<body>
+
+<div class="ticket shadow-lg">
+
+    <h2>Ticket de Registro — NAVIX</h2>
+
+    <div id="ticketData"></div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-primary w-50" style="background:#995E8E;border:none;" onclick="window.print()">
+            Imprimir Ticket
+        </button>
+        <button class="btn btn-success w-50" style="background:#995E8E;border:none;" onclick="enviarEmail()">
+            Enviar Email
+        </button>
+    </div>
+
+</div>
+
+<!--Modal para registrar el email en el cual se enviará el ticket-->
+<div id="emailModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Enviar Ticket por Email</h3>
+        <input 
+            type="email" 
+            id="emailInput" 
+            placeholder="Ingresa el correo electrónico"
+            required
+        >
+        <div class="modal-buttons">
+            <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn-enviar" onclick="confirmarEnvio()">Enviar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const data = JSON.parse(localStorage.getItem("ticketDAMAF"));
+    const box = document.querySelector("#ticketData");
+
+    function formatMXN(n) {
+        return (typeof n === 'number' && !isNaN(n)) 
+            ? n.toLocaleString("es-MX", { style: "currency", currency: "MXN" })
+            : "$0.00";
+    }
+
+    if (!data) {
+        box.innerHTML = "<p>No hay datos disponibles. Por favor, realiza un registro primero.</p>";
+    }  
+    else {
+        const fecha = new Date().toLocaleString("es-MX");
+
+        box.innerHTML = `
+            ${data.fotoCliente ? `
+            <div style="text-align:center;margin-bottom:20px;">
+                <img src="${data.fotoCliente}" 
+                     alt="Foto del Cliente" 
+                     style="width:130px;height:130px;border-radius:12px;object-fit:cover;box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+            </div>
+            ` : ''}
+            
+            <div class="section-title">Detalles del Registro</div>
+            <div class="block small">
+                <strong>Fecha y Hora:</strong> ${fecha}<br>
+                <strong>Proveedores:</strong> ${data.totalProveedores}<br>
+                <strong>Productos:</strong> ${data.totalProductos}<br>
+                <strong>Kilómetros Totales:</strong> ${data.totalKm}
+            </div>
+
+            <div class="section-title">Costos Fijos de Ruta Base</div>
+            <div class="block small">
+                <p class="fw-bold" style="color:#995E8E;margin-bottom:5px;">TIEMPO DE RUTA BASE</p>
+                <strong>Tiempo Total Estimado:</strong> ${data.tiempoRuta.total}<br>
+                <small class="d-block mt-1">(El desglose del tiempo por actividad se encuentra en cada proveedor).</small>
+                
+                <hr class="my-2">
+
+                <p class="fw-bold" style="color:#995E8E;margin-bottom:5px;">COSTOS FIJOS (${data.totalKm})</p>
+                <strong>Costo Base (Transporte):</strong> ${formatMXN(data.costoRutaAcumulado)}<br>
+                • Casetas: ${formatMXN(data.costoRuta.casetas)}<br>
+                • Combustible: ${formatMXN(data.costoRuta.combustible)}<br>
+                • Chofer: ${formatMXN(data.costoRuta.chofer)}<br>
+                • Mantenimiento: ${formatMXN(data.costoRuta.mantenimiento)}<br>
+                • Desgaste de Llantas: ${formatMXN(data.costoRuta.llantas)}<br>
+                • Depreciación: ${formatMXN(data.costoRuta.depreciacion)}<br>
+                
+                <small class="d-block fw-bold mt-2">Costo Promedio por Km: ${formatMXN(data.costoRuta.costoKm)}</small>
+            </div>
+
+            <div class="section-title">Datos del Cliente</div>
+            <div class="block small">
+                <strong>Nombre:</strong> ${data.cliente.nombre}<br>
+                <strong>Teléfono:</strong> ${data.cliente.telefono}<br>
+                <strong>Email:</strong> ${data.cliente.email}<br>
+                <strong>Dirección:</strong> ${data.cliente.direccion}<br>
+                <strong>Notas:</strong> ${data.cliente.notas || "Ninguna"}
+            </div>
+
+            <div class="section-title">Proveedores y Productos</div>
+        `;
+
+        // Proveedores con desglose
+        let subtotalProductos = 0;
+        data.proveedores.forEach(p => {
+            subtotalProductos += p.subtotal;
+            box.innerHTML += `
+                <div class="block small">
+                    <strong>${p.proveedor}</strong><br>
+                    <small>Ruta: ${p.ruta}</small><br>
+                    <small>Kilómetros: ${p.kms} km</small>
+
+                    <div class="productos mt-2">
+                        <strong>Productos:</strong><br>
+                        ${p.productos.map(x => `
+                            • <strong>${x.nombre}</strong><br>
+                            &nbsp;&nbsp;Temperatura: <span style="color:#995E8E;">${x.temperatura}</span><br>
+                            &nbsp;&nbsp;Precio por caja: ${formatMXN(x.precioPorCaja)} — 
+                            Cajas: ${x.cajas} — 
+                            Total: <strong>${formatMXN(x.total)}</strong><br>
+                        `).join("")}
+                    </div>
+
+                    <div class="text-end fw-bold mt-2">
+                        Subtotal proveedor: ${formatMXN(p.subtotal)}
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Totales
+        box.innerHTML += `
+            <div class="block small" style="border-left:4px solid #F08BB0;">
+                <p class="text-end m-0">Subtotal Productos: ${formatMXN(subtotalProductos)}</p>
+                <p class="text-end m-0">Costo Fijo de Ruta: ${formatMXN(data.costoRutaAcumulado)}</p>
+            </div>
+
+            <div class="totales-final">
+                TOTAL GENERAL: ${formatMXN(data.totalGeneral)}
+            </div>
+        `;
+    }
+
+    //Función para enviar email
+    function enviarEmail() {
+        if (!data) {
+            alert("No hay datos disponibles para enviar.");
+            return;
+        }
+
+        //Abrir el modal
+        document.getElementById('emailModal').classList.add('active');
+        
+        //Prellenar con el email del cliente si existe
+        const emailInput = document.getElementById('emailInput');
+        if (data.cliente.email) {
+            emailInput.value = data.cliente.email;
+        }
+    }
+
+    //Función para cerrar el modal
+    function cerrarModal() {
+        document.getElementById('emailModal').classList.remove('active');
+    }
+
+    // Función para confirmar y enviar el email
+    async function confirmarEnvio() {
+        const emailDestino = document.getElementById('emailInput').value.trim();
+        
+        // Validar email
+        if (!emailDestino) {
+            alert('Por favor ingresa un correo electrónico.');
+            return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailDestino)) {
+            alert('Por favor ingresa un correo electrónico válido.');
+            return;
+        }
+
+        // Deshabilitar botón mientras se envía
+        const btnEnviar = document.querySelector('.btn-enviar');
+        const textoOriginal = btnEnviar.textContent;
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Enviando...';
+
+        try {
+            const response = await fetch('http://localhost:3000/api/enviar-ticket', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailDestino: emailDestino,
+                    ticketData: data
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Email enviado correctamente a ' + emailDestino);
+                cerrarModal();
+            } else {
+                alert('Error al enviar el email: ' + result.error);
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión. Asegúrate de que el servidor esté corriendo en http://localhost:3000');
+        } finally {
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = textoOriginal;
+        }
+    }
+
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            cerrarModal();
+        }
+    });
+</script>
+
+</body>
+</html>
