@@ -1,5 +1,17 @@
 /* ============================================================
-    1. Previsualización de Foto del Cliente
+    1. Generación de Código Aleatorio de Ticket
+============================================================ */
+function generarCodigoTicket() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let codigo = 'NAV-';
+    for (let i = 0; i < 6; i++) {
+        codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return codigo;
+}
+
+/* ============================================================
+    2. Previsualización de Foto del Cliente
 ============================================================ */
 const inputFoto = document.querySelector("#clientPhoto");
 const photoBox = document.querySelector("#photoBox");
@@ -31,7 +43,7 @@ function agotado(){
 }
 
 /* ============================================================
-    2. Distancias y Costos Fijos/Tiempos de Ruta (MODIFICADO)
+    3. Distancias y Costos Fijos/Tiempos de Ruta (MODIFICADO)
 ============================================================ */
 const dist = { H_Ob: 252.0, Ob_Cu: 445.6, Cu_Ma: 219.4, Ma_Te: 274.1, Te_Col: 363.1 };
 const distBase = 1554.2; 
@@ -83,7 +95,7 @@ const rutasProveedor = {
 };
 
 /* ============================================================
-    3. Temperaturas por producto
+    4. Temperaturas por producto
 ============================================================ */
 const temperaturas = {
     "Coñac y Brandy XO o Vintage": "18–20°C",
@@ -353,6 +365,7 @@ document.querySelector("#generateBtn")?.addEventListener("click",()=>{
     });
 
     const registro = {
+        codigoTicket: generarCodigoTicket(), // Código único del ticket
         cliente,
         proveedores: productosArray,
         totalKm: document.querySelector("#totalKm").textContent,
