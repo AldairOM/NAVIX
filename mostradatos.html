@@ -164,44 +164,6 @@
         background: #c0c0c0;
     }
 
-    /*Estilos para la configuración de delays*/
-    .delay-config {
-        margin-top: 15px;
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-    }
-
-    .delay-config label {
-        display: block;
-        font-size: 13px;
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 5px;
-    }
-
-    .delay-config input[type="number"] {
-        width: 100%;
-        padding: 8px;
-        border: 2px solid #e0e0e0;
-        border-radius: 6px;
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
-
-    .delay-config input[type="number"]:focus {
-        outline: none;
-        border-color: #995E8E;
-    }
-
-    .delay-info {
-        font-size: 11px;
-        color: #666;
-        margin-top: -8px;
-        margin-bottom: 10px;
-    }
-
     /*Estilos para el indicador de progreso*/
     .progress-indicator {
         margin-top: 15px;
@@ -274,18 +236,6 @@
             placeholder="Ingresa el correo electrónico"
             required
         >
-        
-        <div class="delay-config">
-            <p style="margin:0 0 10px 0;font-size:14px;color:#995E8E;font-weight:bold;">⌛ Configurar Tiempos de Envío</p>
-            
-            <label for="delayEnCamino">Delay "En Camino" (minutos):</label>
-            <input type="number" id="delayEnCamino" min="0.01" step="0.1" value="0.1">
-            <div class="delay-info">⚡ El ticket "En Camino" se enviará después de este tiempo</div>
-            
-            <label for="delayEntregado">Delay "Entregado" (minutos adicionales):</label>
-            <input type="number" id="delayEntregado" min="0.01" step="0.1" value="0.1">
-            <div class="delay-info">⚡ El ticket "Entregado" se enviará después del anterior más este tiempo</div>
-        </div>
 
         <div class="progress-indicator" id="progressIndicator">
             <div class="progress-step pending" id="step1">
@@ -453,8 +403,19 @@
     // Función para confirmar y enviar los tickets con seguimiento
     async function confirmarEnvio() {
         const emailDestino = document.getElementById('emailInput').value.trim();
-        const delayEnCamino = parseFloat(document.getElementById('delayEnCamino').value) || 0.1;
-        const delayEntregado = parseFloat(document.getElementById('delayEntregado').value) || 0.1;
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ⏱ CONFIGURACIÓN DE DELAYS - MODIFICAR AQUÍ
+        // ═══════════════════════════════════════════════════════════════
+        // Valores en MINUTOS:
+        // - 0.1 minutos = 6 segundos (ideal para pruebas)
+        // - 1 minuto = 1 minuto
+        // - 60 minutos = 1 hora
+        // - 1440 minutos = 1 día
+        // ═══════════════════════════════════════════════════════════════
+        
+        const delayEnCamino = 0.1;    // Tiempo antes de enviar "En Camino"
+        const delayEntregado = 0.1;   // Tiempo adicional antes de enviar "Entregado"
         
         // Validar email
         if (!emailDestino) {
