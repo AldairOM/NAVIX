@@ -164,6 +164,85 @@
         background: #c0c0c0;
     }
 
+    /*Estilos para la configuración de delays*/
+    .delay-config {
+        margin-top: 15px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .delay-config label {
+        display: block;
+        font-size: 13px;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    .delay-config input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .delay-config input[type="number"]:focus {
+        outline: none;
+        border-color: #995E8E;
+    }
+
+    .delay-info {
+        font-size: 11px;
+        color: #666;
+        margin-top: -8px;
+        margin-bottom: 10px;
+    }
+
+    /*Estilos para el indicador de progreso*/
+    .progress-indicator {
+        margin-top: 15px;
+        display: none;
+    }
+
+    .progress-indicator.active {
+        display: block;
+    }
+
+    .progress-step {
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .progress-step.pending {
+        background: #f0f0f0;
+        color: #999;
+    }
+
+    .progress-step.sending {
+        background: #fff3cd;
+        color: #856404;
+        border-left: 4px solid #ffc107;
+    }
+
+    .progress-step.sent {
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .progress-step .icon {
+        font-size: 18px;
+    }
+
 </style>
 </head>
 <body>
@@ -188,16 +267,44 @@
 <!--Modal para registrar el email en el cual se enviará el ticket-->
 <div id="emailModal" class="modal-overlay">
     <div class="modal-box">
-        <h3>Enviar Ticket por Email</h3>
+        <h3>Enviar Tickets con Seguimiento</h3>
         <input 
             type="email" 
             id="emailInput" 
             placeholder="Ingresa el correo electrónico"
             required
         >
+        
+        <div class="delay-config">
+            <p style="margin:0 0 10px 0;font-size:14px;color:#995E8E;font-weight:bold;">⌛ Configurar Tiempos de Envío</p>
+            
+            <label for="delayEnCamino">Delay "En Camino" (minutos):</label>
+            <input type="number" id="delayEnCamino" min="0.01" step="0.1" value="0.1">
+            <div class="delay-info">⚡ El ticket "En Camino" se enviará después de este tiempo</div>
+            
+            <label for="delayEntregado">Delay "Entregado" (minutos adicionales):</label>
+            <input type="number" id="delayEntregado" min="0.01" step="0.1" value="0.1">
+            <div class="delay-info">⚡ El ticket "Entregado" se enviará después del anterior más este tiempo</div>
+        </div>
+
+        <div class="progress-indicator" id="progressIndicator">
+            <div class="progress-step pending" id="step1">
+                <span class="icon">⏳</span>
+                <span>Ticket de Confirmación</span>
+            </div>
+            <div class="progress-step pending" id="step2">
+                <span class="icon">⏳</span>
+                <span>Ticket En Camino</span>
+            </div>
+            <div class="progress-step pending" id="step3">
+                <span class="icon">⏳</span>
+                <span>Ticket Entregado</span>
+            </div>
+        </div>
+        
         <div class="modal-buttons">
             <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-            <button class="btn-enviar" onclick="confirmarEnvio()">Enviar</button>
+            <button class="btn-enviar" id="btnEnviar" onclick="confirmarEnvio()">Enviar Tickets</button>
         </div>
     </div>
 </div>
@@ -333,11 +440,21 @@
     //Función para cerrar el modal
     function cerrarModal() {
         document.getElementById('emailModal').classList.remove('active');
+        document.getElementById('progressIndicator').classList.remove('active');
+        
+        // Reset progress
+        ['step1', 'step2', 'step3'].forEach(id => {
+            const step = document.getElementById(id);
+            step.className = 'progress-step pending';
+            step.querySelector('.icon').textContent = '⏳';
+        });
     }
 
-    // Función para confirmar y enviar el email
+    // Función para confirmar y enviar los tickets con seguimiento
     async function confirmarEnvio() {
         const emailDestino = document.getElementById('emailInput').value.trim();
+        const delayEnCamino = parseFloat(document.getElementById('delayEnCamino').value) || 0.1;
+        const delayEntregado = parseFloat(document.getElementById('delayEntregado').value) || 0.1;
         
         // Validar email
         if (!emailDestino) {
@@ -351,40 +468,89 @@
             return;
         }
 
+        // Mostrar indicador de progreso
+        const progressIndicator = document.getElementById('progressIndicator');
+        progressIndicator.classList.add('active');
+
         // Deshabilitar botón mientras se envía
-        const btnEnviar = document.querySelector('.btn-enviar');
+        const btnEnviar = document.getElementById('btnEnviar');
         const textoOriginal = btnEnviar.textContent;
         btnEnviar.disabled = true;
         btnEnviar.textContent = 'Enviando...';
 
         try {
-            const response = await fetch("https://navix-server.onrender.com/api/enviar-ticket", {
+            // Enviar petición al servidor
+            const response = await fetch("https://navix-server.onrender.com/api/enviar-tickets-seguimiento", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     emailDestino: emailDestino,
-                    ticketData: data
+                    ticketData: data,
+                    delays: {
+                        enCamino: delayEnCamino,
+                        entregado: delayEntregado
+                    }
                 })
             });
 
             const result = await response.json();
 
             if (result.success) {
-                alert('Email enviado correctamente a ' + emailDestino);
-                cerrarModal();
+                // Actualizar paso 1: Confirmación (enviado inmediatamente)
+                updateProgress('step1', 'sent', '✓', 'Ticket de Confirmación - Enviado');
+                
+                // Programar actualización visual del paso 2
+                setTimeout(() => {
+                    updateProgress('step2', 'sending', '📦', 'Ticket En Camino - Enviando...');
+                    setTimeout(() => {
+                        updateProgress('step2', 'sent', '✓', 'Ticket En Camino - Enviado');
+                    }, 2000);
+                }, delayEnCamino * 60 * 1000);
+                
+                // Programar actualización visual del paso 3
+                setTimeout(() => {
+                    updateProgress('step3', 'sending', '✅', 'Ticket Entregado - Enviando...');
+                    setTimeout(() => {
+                        updateProgress('step3', 'sent', '✓', 'Ticket Entregado - Enviado');
+                        
+                        // Mensaje final
+                        setTimeout(() => {
+                            alert('✅ Todos los tickets han sido enviados exitosamente a ' + emailDestino);
+                            cerrarModal();
+                        }, 1000);
+                    }, 2000);
+                }, (delayEnCamino + delayEntregado) * 60 * 1000);
+                
+                // Mostrar mensaje informativo
+                alert(`✅ Tickets programados correctamente\n\n` +
+                      `• Confirmación: Enviado ahora\n` +
+                      `• En Camino: ${delayEnCamino} min\n` +
+                      `• Entregado: ${delayEnCamino + delayEntregado} min total\n\n` +
+                      `Puedes cerrar esta ventana. Los emails se enviarán automáticamente.`);
+
             } else {
-                alert('Error al enviar el email: ' + result.error);
+                alert('Error al enviar los tickets: ' + result.error);
+                progressIndicator.classList.remove('active');
             }
 
         } catch (error) {
             console.error('Error:', error);
-            alert('Error de conexión. Asegúrate de que el servidor esté corriendo en http://localhost:3000');
+            alert('Error de conexión. Asegúrate de que el servidor esté corriendo.');
+            progressIndicator.classList.remove('active');
         } finally {
             btnEnviar.disabled = false;
             btnEnviar.textContent = textoOriginal;
         }
+    }
+
+    // Función auxiliar para actualizar el progreso
+    function updateProgress(stepId, status, icon, text) {
+        const step = document.getElementById(stepId);
+        step.className = `progress-step ${status}`;
+        step.querySelector('.icon').textContent = icon;
+        step.querySelector('span:last-child').textContent = text;
     }
 
     // Cerrar modal con tecla ESC
