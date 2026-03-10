@@ -1,71 +1,88 @@
-/* ============================================================
-    1. Generación de Código Aleatorio de Ticket
-============================================================ */
+//===============================
+//UTILIDADES GENERALES
+//===============================
+
 function generarCodigoTicket() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let codigo = 'NAV-';
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let codigo = "NAV-";
+
     for (let i = 0; i < 6; i++) {
         codigo += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+
     return codigo;
 }
 
-/* ============================================================
-    2. Previsualización de Foto del Cliente
-============================================================ */
-const inputFoto = document.querySelector("#clientPhoto");
+function formatMXN(n) {
+    return Number(n).toLocaleString("es-MX", {
+        style: "currency",
+        currency: "MXN"
+    });
+}
+
+function agotado() {
+    alert("Este producto está agotado.");
+}
+
+//===============================
+//FOTO / PREVISUALIZACIÓN
+//===============================
+
+const inputFoto = document.querySelector("#Photo");
 const photoBox = document.querySelector("#photoBox");
-let fotoBase64 = null; // Variable para almacenar la foto en base64
+const btnEntrega = document.getElementById("btnEntrega");
+
+let fotoBase64 = null;
 
 if (inputFoto) {
     inputFoto.addEventListener("change", () => {
-        const file = inputFoto.files[0];
+        const file = inputFoto.files?.[0];
         if (!file) return;
 
-        // Previsualización
-        const url = URL.createObjectURL(file);
-        photoBox.innerHTML = `
-            <img src="${url}" 
-                 style="width:100%;height:100%;object-fit:cover;border-radius:12px;">
-        `;
-
-        // Convertir a base64 para guardar
         const reader = new FileReader();
-        reader.onload = function(e) {
-            fotoBase64 = e.target.result; // Guardar base64 completo (incluye data:image/...)
+
+        reader.onload = function (e) {
+            fotoBase64 = e.target.result;
+
+            if (photoBox) {
+                photoBox.innerHTML = `
+                    <img 
+                        src="${fotoBase64}" 
+                        style="width:100%; height:100%; object-fit:cover; border-radius:12px;"
+                    >
+                `;
+            }
+
+            if (btnEntrega) {
+                btnEntrega.disabled = false;
+            }
         };
+
         reader.readAsDataURL(file);
     });
 }
 
-function agotado(){
-     alert("Este Producto esta agotado.");
-}
+//===============================
+//DATOS DE RUTA/COSTOS/TIEMPOS
+//===============================
 
-/* ============================================================
-    3. Distancias y Costos Fijos/Tiempos de Ruta (MODIFICADO)
-============================================================ */
-const dist = { H_Ob: 252.0, Ob_Cu: 445.6, Cu_Ma: 219.4, Ma_Te: 274.1, Te_Col: 363.1 };
-const distBase = 1554.2; 
+const distBase = 1554.2;
 
-// Distancias oficiales por proveedor (Asumiendo que se sigue la ruta completa)
 const distancias = {
-    p1: distBase, 
-    p2: distBase, 
-    p3: distBase, 
+    p1: distBase,
+    p2: distBase,
+    p3: distBase,
     p4: distBase
 };
 
-// A. Tiempos Totales (NUEVO)
 const tiempoRuta = {
     total: "29h:50m",
     conduciendo: "21h:40m",
     paradas: "00h:00m",
     descansando: "08h:00m",
-    gasolineras: "00h:10m",
+    gasolineras: "00h:10m"
 };
 
-// B. Costos Fijos por Ruta (NUEVO)
 const costoRuta = {
     totalBase: 22328.30,
     casetas: 5063.00,
@@ -77,7 +94,7 @@ const costoRuta = {
     depreciacion: 936.70,
     costosFijos: 808.78,
     otrosCostos: 2951.46,
-    costoKm: 14.30 
+    costoKm: 14.30
 };
 
 const nombresProveedor = {
@@ -94,9 +111,10 @@ const rutasProveedor = {
     p4: "Hermosillo → Tepic → Colima"
 };
 
-/* ============================================================
-    4. Temperaturas por producto
-============================================================ */
+//===============================
+//TEMPERATURAS Y PRECIOS
+//===============================
+
 const temperaturas = {
     "Coñac y Brandy XO o Vintage": "18–20°C",
     "Whisky Escocés Single Malt": "15–18°C",
@@ -120,9 +138,6 @@ const temperaturas = {
     "Eau-de-Vie": "6–10°C"
 };
 
-/* ============================================================
-    4. Precios por producto (precio por caja)
-============================================================ */
 const preciosPorCaja = {
     "Coñac y Brandy XO o Vintage": 8200,
     "Whisky Escocés Single Malt": 6500,
@@ -146,150 +161,176 @@ const preciosPorCaja = {
     "Eau-de-Vie": 4200
 };
 
+const proveedores = ["p1", "p2", "p3", "p4"];
 
-/* ============================================================
-    5. Proveedores y utilidades
-============================================================ */
-const proveedores = ["p1","p2","p3","p4"];
-function formatMXN(n){ return n.toLocaleString("es-MX",{style:"currency",currency:"MXN"}); }
+//===============================
+//MANEJO DE CANTIDADES POR PRODUCTO
+//===============================
 
-/* ============================================================
-    6. Crear / quitar input cantidad
-============================================================ */
-function createQtyInputForCheckbox(checkbox){
+function createQtyInputForCheckbox(checkbox) {
     const container = checkbox.closest("label");
-    if(!container) return null;
+    if (!container) return null;
+
     const prodName = checkbox.value;
-    const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g,'')}`;
-    if(container.querySelector(`#${wrapperId}`)) return container.querySelector(`#${wrapperId}`);
+    const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g, "")}`;
+
+    const existente = container.querySelector(`#${wrapperId}`);
+    if (existente) return existente;
 
     const wrapper = document.createElement("span");
     wrapper.id = wrapperId;
-    wrapper.style.marginLeft="8px";
-    wrapper.style.fontSize="13px";
-    wrapper.style.display="inline-flex";
-    wrapper.style.alignItems="center";
-    wrapper.style.gap="8px";
+    wrapper.style.marginLeft = "8px";
+    wrapper.style.fontSize = "13px";
+    wrapper.style.display = "inline-flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.gap = "8px";
 
     const priceSpan = document.createElement("span");
     priceSpan.textContent = `Caja: ${formatMXN(preciosPorCaja[prodName])}`;
-    priceSpan.style.color="#666";
-    priceSpan.style.fontWeight="700";
+    priceSpan.style.color = "#666";
+    priceSpan.style.fontWeight = "700";
 
     const input = document.createElement("input");
-    input.type="number";
-    input.min="1";
-    input.value="1";
-    input.style.width="60px";
-    input.style.padding="4px";
-    input.style.borderRadius="6px";
-    input.style.border="1px solid rgba(0,0,0,0.12)";
-    input.setAttribute("data-prod",prodName);
-    input.addEventListener("change",()=>actualizarTotales());
+    input.type = "number";
+    input.min = "1";
+    input.value = "1";
+    input.style.width = "60px";
+    input.style.padding = "4px";
+    input.style.borderRadius = "6px";
+    input.style.border = "1px solid rgba(0,0,0,0.12)";
+    input.setAttribute("data-prod", prodName);
+
+    input.addEventListener("change", () => {
+        actualizarTotales();
+    });
 
     wrapper.appendChild(priceSpan);
     wrapper.appendChild(document.createTextNode("Cajas:"));
     wrapper.appendChild(input);
     container.appendChild(wrapper);
+
     return wrapper;
 }
 
-function removeQtyInputForCheckbox(checkbox){
-    const container=checkbox.closest("label");
-    if(!container) return;
-    const prodName=checkbox.value;
-    const wrapperId=`qty-wrapper-${btoa(prodName).replace(/=/g,'')}`;
-    const wrapper=container.querySelector(`#${wrapperId}`);
-    if(wrapper) wrapper.remove();
+function removeQtyInputForCheckbox(checkbox) {
+    const container = checkbox.closest("label");
+    if (!container) return;
+
+    const prodName = checkbox.value;
+    const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g, "")}`;
+    const wrapper = container.querySelector(`#${wrapperId}`);
+
+    if (wrapper) wrapper.remove();
 }
 
-/* ============================================================
-    7. Limitar productos por proveedor
-============================================================ */
-function limitarProductos(id){
-    const checks=document.querySelectorAll(`input[data-prov="${id}"]`);
-    const seleccionados=[...checks].filter(c=>c.checked);
-    if(seleccionados.length>3){
+//===============================
+//REGLAS DE SELECCIÓN
+//===============================
+
+function limitarProductos(id) {
+    const checks = document.querySelectorAll(`input[data-prov="${id}"]`);
+    const seleccionados = [...checks].filter(c => c.checked);
+
+    if (seleccionados.length > 3) {
         alert("Solo puedes seleccionar máximo 3 productos para este proveedor.");
-        const ultimo=seleccionados.pop();
-        ultimo.checked=false;
+        const ultimo = seleccionados.pop();
+        ultimo.checked = false;
         removeQtyInputForCheckbox(ultimo);
     }
+
     actualizarTotales();
 }
 
-/* ============================================================
-    8. Actualizar totales y resumen (MODIFICADO)
-============================================================ */
-function actualizarTotales(){
-    let totalProveedores=0,totalProductos=0,totalKm=0,totalGeneral=0;
-    let costoRutaAcumulado = 0; 
+//===============================
+//ACTUALIZACIÓN DE TOTALES / RESUMEN
+//===============================
 
-    let resumenHTML="";
+function actualizarTotales() {
+    let totalProveedores = 0;
+    let totalProductos = 0;
+    let totalKm = 0;
     let productosSubtotal = 0;
+    let costoRutaAcumulado = 0;
+    let resumenHTML = "";
 
-    proveedores.forEach(id=>{
-        const card=document.querySelector(`.prov-card[data-id="${id}"]`);
-        const checks=[...document.querySelectorAll(`input[data-prov="${id}"]:checked`)];
-        if(card.classList.contains("active")){
+    proveedores.forEach(id => {
+        const card = document.querySelector(`.prov-card[data-id="${id}"]`);
+        if (!card) return;
+
+        const checks = [...document.querySelectorAll(`input[data-prov="${id}"]:checked`)];
+
+        if (card.classList.contains("active")) {
             totalProveedores++;
-            totalProductos+=checks.length;
-            totalKm=distancias[id]; // El km total es distBase (1554.2 km)
-            
-            let subtotalProv=0;
-            const productosHTML = checks.length===0 ? "<em>— Ninguno —</em>" :
-            checks.map(c=>{
-                const prodName=c.value;
-                const wrapperId=`qty-wrapper-${btoa(prodName).replace(/=/g,'')}`;
-                const wrapper=c.closest("label")?.querySelector(`#${wrapperId}`);
-                let qty=1;
-                if(wrapper){
-                    const inp=wrapper.querySelector("input[type='number']");
-                    if(inp) qty=parseInt(inp.value,10)||1;
-                }
-                const price=preciosPorCaja[prodName]||0;
-                const totalProd=price*qty;
-                subtotalProv+=totalProd;
-                productosSubtotal+=totalProd; 
-                
-                return `<div style="margin-left:8px;margin-bottom:6px;">• <strong>${prodName}</strong>
-                    <span style="color:#995E8E;font-weight:700;"> — ${temperaturas[prodName]||"N/A"}</span><br>
-                    &nbsp;&nbsp;&nbsp;Precio por caja: ${formatMXN(price)} — Cajas: ${qty} — Total: <strong>${formatMXN(totalProd)}</strong>
-                    </div>`;
-            }).join("");
-            
-            resumenHTML+=`<div style="padding:12px;margin-bottom:12px;background:#faf5ff;border-radius:10px;border-left:5px solid #995E8E;">
-                <strong style="font-size:15px;color:#6b3570;">${nombresProveedor[id]}</strong><br>
-                <span style="font-size:13px;color:#555;">Ruta: ${rutasProveedor[id]}</span><br>
-                <span style="font-size:13px;color:#444;">Kilómetros asignados: <strong>${distancias[id].toFixed(1)} km</strong></span><br><br>
-                <u style="font-weight:bold;">Productos Seleccionados:</u><br>${productosHTML}
-                <div style="margin-top:8px;font-weight:800;color:#333;">Subtotal proveedor: ${formatMXN(subtotalProv)}</div>
-            </div>`;
+            totalProductos += checks.length;
+            totalKm = distancias[id];
+
+            let subtotalProv = 0;
+
+            const productosHTML = checks.length === 0
+                ? "<em>— Ninguno —</em>"
+                : checks.map(c => {
+                    const prodName = c.value;
+                    const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g, "")}`;
+                    const wrapper = c.closest("label")?.querySelector(`#${wrapperId}`);
+
+                    let qty = 1;
+                    if (wrapper) {
+                        const inp = wrapper.querySelector("input[type='number']");
+                        if (inp) qty = parseInt(inp.value, 10) || 1;
+                    }
+
+                    const price = preciosPorCaja[prodName] || 0;
+                    const totalProd = price * qty;
+
+                    subtotalProv += totalProd;
+                    productosSubtotal += totalProd;
+
+                    return `
+                        <div style="margin-left:8px;margin-bottom:6px;">
+                            • <strong>${prodName}</strong>
+                            <span style="color:#995E8E;font-weight:700;"> — ${temperaturas[prodName] || "N/A"}</span><br>
+                            &nbsp;&nbsp;&nbsp;Precio por caja: ${formatMXN(price)} — Cajas: ${qty} — Total: <strong>${formatMXN(totalProd)}</strong>
+                        </div>
+                    `;
+                }).join("");
+
+            resumenHTML += `
+                <div style="padding:12px;margin-bottom:12px;background:#faf5ff;border-radius:10px;border-left:5px solid #995E8E;">
+                    <strong style="font-size:15px;color:#6b3570;">${nombresProveedor[id]}</strong><br>
+                    <span style="font-size:13px;color:#555;">Ruta: ${rutasProveedor[id]}</span><br>
+                    <span style="font-size:13px;color:#444;">Kilómetros asignados: <strong>${distancias[id].toFixed(1)} km</strong></span><br><br>
+                    <u style="font-weight:bold;">Productos Seleccionados:</u><br>${productosHTML}
+                    <div style="margin-top:8px;font-weight:800;color:#333;">Subtotal proveedor: ${formatMXN(subtotalProv)}</div>
+                </div>
+            `;
         }
     });
-    
-    // Si hay algún proveedor activo, se aplica el costo de ruta una sola vez
-    if(totalProveedores > 0){
+
+    if (totalProveedores > 0) {
         costoRutaAcumulado = costoRuta.totalBase;
     }
 
-    // Total General = Productos + Costo Fijo de la Ruta
-    totalGeneral = productosSubtotal + costoRutaAcumulado;
+    const totalGeneral = productosSubtotal + costoRutaAcumulado;
 
-    document.querySelector("#selectedCount").textContent=totalProveedores;
-    document.querySelector("#selectedProducts").textContent=totalProductos;
-    document.querySelector("#totalKm").textContent=totalKm.toFixed(1)+" km";
+    const selectedCount = document.querySelector("#selectedCount");
+    const selectedProducts = document.querySelector("#selectedProducts");
+    const totalKmEl = document.querySelector("#totalKm");
+    const totalsCard = document.querySelector(".totals-card");
 
-    const totalsCard=document.querySelector(".totals-card");
-    const existingDetalle=document.querySelector("#detalleResumen");
-    if(existingDetalle) existingDetalle.remove();
+    if (selectedCount) selectedCount.textContent = totalProveedores;
+    if (selectedProducts) selectedProducts.textContent = totalProductos;
+    if (totalKmEl) totalKmEl.textContent = `${totalKm.toFixed(1)} km`;
 
-    const detalleDiv=document.createElement("div");
-    detalleDiv.id="detalleResumen";
-    detalleDiv.style.marginTop="15px";
+    if (!totalsCard) return;
 
-    // NUEVO: Mostrar el desglose de Costos y Tiempos
-    let rutaInfoHTML = '';
+    const existingDetalle = document.querySelector("#detalleResumen");
+    if (existingDetalle) existingDetalle.remove();
+
+    const detalleDiv = document.createElement("div");
+    detalleDiv.id = "detalleResumen";
+    detalleDiv.style.marginTop = "15px";
+
+    let rutaInfoHTML = "";
     if (totalProveedores > 0) {
         rutaInfoHTML = `
             <div style="padding:15px;margin-bottom:12px;background:#f5faff;border-radius:10px;border-left:5px solid #F08BB0;">
@@ -309,154 +350,206 @@ function actualizarTotales(){
                         • Chofer: ${formatMXN(costoRuta.chofer)}<br>
                     </div>
                 </div>
-                
             </div>
         `;
-    } 
+    }
 
-    detalleDiv.innerHTML=`
+    detalleDiv.innerHTML = `
         ${rutaInfoHTML}
         ${resumenHTML}
         <div style="padding:12px;background:#fff7fb;border-radius:10px;margin-top:8px;border-left:4px solid #995E8E;">
             <strong>Total General:</strong> ${formatMXN(totalGeneral)}
-        </div>`;
+        </div>
+    `;
+
     totalsCard.appendChild(detalleDiv);
 }
 
-/* ============================================================
-    9. Guardar registro (MODIFICADO)
-============================================================ */
-document.querySelector("#generateBtn")?.addEventListener("click",()=>{
-    const cliente={
-        nombre:document.querySelector("#clientName")?.value,
-        telefono:document.querySelector("#clientPhone")?.value,
-        email:document.querySelector("#clientEmail")?.value,
-        direccion:document.querySelector("#clientAddress")?.value,
-        notas:document.querySelector("#clientNotes")?.value
+//===============================
+//GUARDAR REGISTRO
+//===============================
+
+document.querySelector("#generateBtn")?.addEventListener("click", () => {
+    const cliente = {
+        nombre: document.querySelector("#clientName")?.value || "",
+        telefono: document.querySelector("#clientPhone")?.value || "",
+        email: document.querySelector("#clientEmail")?.value || "",
+        direccion: document.querySelector("#clientAddress")?.value || "",
+        notas: document.querySelector("#clientNotes")?.value || ""
     };
-    if(!cliente.nombre){ alert("Por favor llena el nombre del cliente."); return; }
-    
-    const proveedoresActivos = proveedores.filter(id=>document.querySelector(`.prov-card[data-id="${id}"]`).classList.contains("active"));
-    if(proveedoresActivos.length === 0){ alert("Debes seleccionar al menos un proveedor."); return; }
 
-    let costoRutaAcumulado = proveedoresActivos.length > 0 ? costoRuta.totalBase : 0;
-    let totalGeneralTemporal = 0; 
-    let productosArray = [];
+    if (!cliente.nombre.trim()) {
+        alert("Por favor llena el nombre del cliente.");
+        return;
+    }
 
-    proveedoresActivos.forEach(id=>{
-        const productos=[...document.querySelectorAll(`input[data-prov="${id}"]:checked`)]
-            .map(c=>{
-                const prodName=c.value;
-                const wrapperId=`qty-wrapper-${btoa(prodName).replace(/=/g,'')}`;
-                const wrapper=c.closest("label")?.querySelector(`#${wrapperId}`);
-                let qty=1;
-                if(wrapper){
-                    const inp=wrapper.querySelector("input[type='number']");
-                    if(inp) qty=parseInt(inp.value,10)||1;
-                }
-                const price=preciosPorCaja[prodName]||0;
-                const totalProd=price*qty;
-                return {nombre:prodName,temperatura:temperaturas[prodName],precioPorCaja:price,cajas:qty,total:totalProd};
-            });
-        
-        const subtotalProv=productos.reduce((s,x)=>s+x.total,0);
-        totalGeneralTemporal += subtotalProv; 
-        productosArray.push({proveedor:nombresProveedor[id],ruta:rutasProveedor[id],kms:distancias[id].toFixed(1),productos,subtotal:subtotalProv});
+    const proveedoresActivos = proveedores.filter(id =>
+        document.querySelector(`.prov-card[data-id="${id}"]`)?.classList.contains("active")
+    );
+
+    if (proveedoresActivos.length === 0) {
+        alert("Debes seleccionar al menos un proveedor.");
+        return;
+    }
+
+    const costoRutaAcumulado = proveedoresActivos.length > 0 ? costoRuta.totalBase : 0;
+
+    let totalGeneralTemporal = 0;
+    const productosArray = [];
+
+    proveedoresActivos.forEach(id => {
+        const productos = [...document.querySelectorAll(`input[data-prov="${id}"]:checked`)].map(c => {
+            const prodName = c.value;
+            const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g, "")}`;
+            const wrapper = c.closest("label")?.querySelector(`#${wrapperId}`);
+
+            let qty = 1;
+            if (wrapper) {
+                const inp = wrapper.querySelector("input[type='number']");
+                if (inp) qty = parseInt(inp.value, 10) || 1;
+            }
+
+            const price = preciosPorCaja[prodName] || 0;
+            const totalProd = price * qty;
+
+            return {
+                nombre: prodName,
+                temperatura: temperaturas[prodName],
+                precioPorCaja: price,
+                cajas: qty,
+                total: totalProd
+            };
+        });
+
+        const subtotalProv = productos.reduce((s, x) => s + x.total, 0);
+        totalGeneralTemporal += subtotalProv;
+
+        productosArray.push({
+            proveedor: nombresProveedor[id],
+            ruta: rutasProveedor[id],
+            kms: distancias[id].toFixed(1),
+            productos,
+            subtotal: subtotalProv
+        });
     });
 
     const registro = {
-        codigoTicket: generarCodigoTicket(), // Código único del ticket
+        codigoTicket: generarCodigoTicket(),
         cliente,
         proveedores: productosArray,
-        totalKm: document.querySelector("#totalKm").textContent,
-        totalProveedores: document.querySelector("#selectedCount").textContent,
-        totalProductos: document.querySelector("#selectedProducts").textContent,
-        
-        // DATOS ADICIONALES PARA EL TICKET FINAL
-        costoRuta, 
-        tiempoRuta, 
-        costoRutaAcumulado: costoRutaAcumulado, 
-        
-        // Suma de productos + costo de ruta
+        totalKm: document.querySelector("#totalKm")?.textContent || "0.0 km",
+        totalProveedores: document.querySelector("#selectedCount")?.textContent || "0",
+        totalProductos: document.querySelector("#selectedProducts")?.textContent || "0",
+        costoRuta,
+        tiempoRuta,
+        costoRutaAcumulado,
         totalGeneral: totalGeneralTemporal + costoRutaAcumulado,
-        
-        // Foto del cliente en base64 (si existe)
         fotoCliente: fotoBase64
     };
 
-    localStorage.setItem("ticketDAMAF",JSON.stringify(registro));
-    window.location.href="mostradatos.html";
+    localStorage.setItem("ticketDAMAF", JSON.stringify(registro));
+    window.location.href = "mostradatos.html";
 });
 
-/* ============================================================
-    10. Reset (MODIFICADO)
-============================================================ */
-document.querySelector("#resetAll")?.addEventListener("click",()=>{
-    // Usa el ID del formulario
-    document.querySelector("#clientForm")?.reset(); 
-    if(photoBox) photoBox.innerHTML="Foto";
-    
-    proveedores.forEach(id=>{
-        const card=document.querySelector(`.prov-card[data-id="${id}"]`);
-        const body=document.querySelector(`#body-${id}`);
-        const checks=document.querySelectorAll(`input[data-prov="${id}"]`);
-        
-        // Si el elemento <details> está abierto, lo cierra forzando el evento 'toggle'
-        const details=card.querySelector("summary")?.parentElement;
-        if(details && details.open) details.open = false; 
-        
-        card.classList.remove("active"); 
-        card.classList.add("disabled"); 
-        body.style.display="none";
-        checks.forEach(c=>{c.checked=false;c.disabled=true;removeQtyInputForCheckbox(c);});
+//===============================
+//RESET
+//===============================
+
+document.querySelector("#resetAll")?.addEventListener("click", () => {
+    document.querySelector("#clientForm")?.reset();
+
+    fotoBase64 = null;
+
+    if (photoBox) {
+        photoBox.innerHTML = "Foto";
+    }
+
+    if (btnEntrega) {
+        btnEntrega.disabled = true;
+    }
+
+    proveedores.forEach(id => {
+        const card = document.querySelector(`.prov-card[data-id="${id}"]`);
+        const body = document.querySelector(`#body-${id}`);
+        const checks = document.querySelectorAll(`input[data-prov="${id}"]`);
+
+        const details = card?.querySelector("summary")?.parentElement;
+        if (details && details.open) details.open = false;
+
+        if (card) {
+            card.classList.remove("active");
+            card.classList.add("disabled");
+        }
+
+        if (body) {
+            body.style.display = "none";
+        }
+
+        checks.forEach(c => {
+            c.checked = false;
+            c.disabled = true;
+            removeQtyInputForCheckbox(c);
+        });
     });
+
     actualizarTotales();
 });
 
-/* ============================================================
-    11. Inicialización (eventos, toggle proveedor)
-============================================================ */
-function inicializar(){
-    proveedores.forEach(id=>{
-        const card=document.querySelector(`.prov-card[data-id="${id}"]`);
-        const body=document.querySelector(`#body-${id}`);
-        const checks=document.querySelectorAll(`input[data-prov="${id}"]`);
+//===============================
+//INICIALIZACIÓN
+//===============================
+
+function inicializar() {
+    proveedores.forEach(id => {
+        const card = document.querySelector(`.prov-card[data-id="${id}"]`);
+        const body = document.querySelector(`#body-${id}`);
+        const checks = document.querySelectorAll(`input[data-prov="${id}"]`);
+
+        if (!card || !body) return;
 
         card.classList.add("disabled");
-        body.style.display="none";
-        checks.forEach(c=>c.disabled=true);
+        body.style.display = "none";
+        checks.forEach(c => c.disabled = true);
 
-        // toggle con event toggle de <details>
-        const details=card.querySelector("summary")?.parentElement;
-        if(details){
-            details.addEventListener("toggle",()=>{
-                if(details.open){
+        const details = card.querySelector("summary")?.parentElement;
+
+        if (details) {
+            details.addEventListener("toggle", () => {
+                if (details.open) {
                     card.classList.add("active");
                     card.classList.remove("disabled");
-                    body.style.display="block";
-                    checks.forEach(c=>c.disabled=false);
-                } else{
+                    body.style.display = "block";
+                    checks.forEach(c => c.disabled = false);
+                } else {
                     card.classList.remove("active");
                     card.classList.add("disabled");
-                    body.style.display="none";
-                    checks.forEach(c=>{c.checked=false;c.disabled=true;removeQtyInputForCheckbox(c);});
+                    body.style.display = "none";
+                    checks.forEach(c => {
+                        c.checked = false;
+                        c.disabled = true;
+                        removeQtyInputForCheckbox(c);
+                    });
                 }
+
                 actualizarTotales();
             });
         }
 
-        checks.forEach(c=>{
-            c.addEventListener("change",(e)=>{
-                if(e.target.checked) createQtyInputForCheckbox(e.target);
-                else removeQtyInputForCheckbox(e.target);
+        checks.forEach(c => {
+            c.addEventListener("change", e => {
+                if (e.target.checked) {
+                    createQtyInputForCheckbox(e.target);
+                } else {
+                    removeQtyInputForCheckbox(e.target);
+                }
+
                 limitarProductos(id);
             });
         });
     });
 
-    // Abrir proveedor 1 por defecto
-    const prov1=document.querySelector(`.prov-card[data-id="p1"] summary`)?.parentElement;
-    if(prov1) prov1.open=true;
+    const prov1 = document.querySelector(`.prov-card[data-id="p1"] summary`)?.parentElement;
+    if (prov1) prov1.open = true;
 }
 
 inicializar();
