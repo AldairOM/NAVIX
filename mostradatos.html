@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Ticket NAVIX</title>
 
-<!--Bootstrap 5-->
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
@@ -205,56 +205,120 @@
         font-size: 18px;
     }
 
+    .container{
+        max-width:1200px;
+        margin:auto;
+    }
+
+    .photo-panel{
+        background:white;
+        border-radius:16px;
+        padding:20px;
+        text-align:center;
+        border-left:8px solid #995E8E;
+    }
+
+    .photo-panel h5{
+        color:#6b3570;
+        margin-bottom:15px;
+    }
+
+    #photoBox{
+        width:100%;
+        height:220px;
+        background:#f5f5f5;
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        overflow:hidden;
+        border:2px dashed #ccc;
+        color:#777;
+        font-size:14px;
+    }
+
 </style>
 </head>
 <body>
 
-<div class="ticket shadow-lg">
+<div class="container">
+    <div class="row justify-content-center align-items-start g-4">
 
-    <h2>Ticket de Registro — NAVIX</h2>
+        <!--Ticket-->
+        <div class="col-lg-7">
+            <div class="ticket shadow-lg">
+                <h2>Ticket de Registro — NAVIX</h2>
 
-    <div id="ticketData"></div>
+                <div id="ticketData"></div>
 
-    <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-primary w-50" style="background:#995E8E;border:none;" onclick="window.print()">
-            Imprimir Ticket
-        </button>
-        <button class="btn btn-success w-50" style="background:#995E8E;border:none;" onclick="enviarEmail()">
-            Enviar Email
-        </button>
-    </div>
-
-</div>
-
-<!--Modal para registrar el email en el cual se enviará el ticket-->
-<div id="emailModal" class="modal-overlay">
-    <div class="modal-box">
-        <h3>Enviar Tickets con Seguimiento</h3>
-        <input 
-            type="email" 
-            id="emailInput" 
-            placeholder="Ingresa el correo electrónico"
-            required
-        >
-
-        <div class="progress-indicator" id="progressIndicator">
-            <div class="progress-step pending" id="step1">
-                <span class="icon">⏳</span>
-                <span>Ticket de Confirmación</span>
-            </div>
-            <div class="progress-step pending" id="step2">
-                <span class="icon">⏳</span>
-                <span>Ticket En Camino</span>
-            </div>
-            <div class="progress-step pending" id="step3">
-                <span class="icon">⏳</span>
-                <span>Ticket Entregado</span>
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary w-50" style="background:#995E8E;border:none;" onclick="window.print()">
+                        Imprimir Ticket
+                    </button>
+                    <button class="btn btn-success w-50" style="background:#995E8E;border:none;" onclick="enviarEmail()">
+                        Enviar Email
+                    </button>
+                </div>
             </div>
         </div>
-        
-        <div class="modal-buttons">
-            <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-            <button class="btn-enviar" id="btnEnviar" onclick="confirmarEnvio()">Enviar Tickets</button>
+
+        <!--Panel de Foto-->
+        <div class="col-lg-4">
+            <div class="photo-panel shadow-lg">
+
+                <h5>Foto de Entrega</h5>
+
+                <div id="photoBox"></div>
+
+                <input 
+                    type="file" 
+                    id="Photo"
+                    accept="image/*"
+                    class="form-control mt-3"
+                >
+                <button 
+                    id="btnEntrega"
+                    class="btn btn-success mt-3 w-100"
+                    style="background:#995E8E;border:none;"
+                    onclick="abrirModalEntrega()"
+                    disabled>
+                    Confirmar Entrega
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!--Modal para registrar el email en el cual se enviará el ticket-->
+    <div id="emailModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Enviar Tickets con Seguimiento</h3>
+            <input 
+                type="email" 
+                id="emailInput" 
+                placeholder="Ingresa el correo electrónico"
+                required
+            >
+
+            <div class="progress-indicator" id="progressIndicator">
+                <div class="progress-step pending" id="step1">
+                    <span class="icon">⏳</span>
+                    <span>Ticket de Confirmación</span>
+                </div>
+                <div class="progress-step pending" id="step2">
+                    <span class="icon">⏳</span>
+                    <span>Ticket En Camino</span>
+                </div>
+                <div class="progress-step pending" id="step3">
+                    <span class="icon">⏳</span>
+                    <span>Ticket Entregado</span>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn-enviar" id="btnEnviar" onclick="confirmarEnvio()">Enviar Tickets</button>
+            </div>
         </div>
     </div>
 </div>
@@ -264,15 +328,50 @@
     const box = document.querySelector("#ticketData");
 
     function formatMXN(n) {
-        return (typeof n === 'number' && !isNaN(n)) 
+        return (typeof n === "number" && !isNaN(n))
             ? n.toLocaleString("es-MX", { style: "currency", currency: "MXN" })
             : "$0.00";
     }
 
-    if (!data) {
-        box.innerHTML = "<p>No hay datos disponibles. Por favor, realiza un registro primero.</p>";
-    }  
-    else {
+    function updateProgress(stepId, status, icon, text) {
+        const step = document.getElementById(stepId);
+        if (!step) return;
+
+        step.className = `progress-step ${status}`;
+        step.querySelector(".icon").textContent = icon;
+        step.querySelector("span:last-child").textContent = text;
+    }
+
+    function resetProgress() {
+        updateProgress("step1", "pending", "⏳", "Ticket de Confirmación");
+        updateProgress("step2", "pending", "⏳", "Ticket En Camino");
+        updateProgress("step3", "pending", "⏳", "Ticket Entregado");
+    }
+
+    function restaurarBotonModal() {
+        const btnEnviar = document.getElementById("btnEnviar");
+        btnEnviar.textContent = "Enviar Tickets";
+        btnEnviar.onclick = confirmarEnvio;
+        btnEnviar.disabled = false;
+    }
+
+    function abrirModal() {
+        document.getElementById("emailModal").classList.add("active");
+    }
+
+    function cerrarModal() {
+        document.getElementById("emailModal").classList.remove("active");
+        document.getElementById("progressIndicator").classList.remove("active");
+        resetProgress();
+        restaurarBotonModal();
+    }
+
+    function llenarTicket() {
+        if (!data) {
+            box.innerHTML = "<p>No hay datos disponibles. Por favor, realiza un registro primero.</p>";
+            return;
+        }
+
         const fecha = new Date().toLocaleString("es-MX");
 
         box.innerHTML = `
@@ -282,8 +381,8 @@
                      alt="Foto del Cliente" 
                      style="width:130px;height:130px;border-radius:12px;object-fit:cover;box-shadow:0 4px 10px rgba(0,0,0,0.1);">
             </div>
-            ` : ''}
-            
+            ` : ""}
+
             <div class="section-title">Detalles del Registro</div>
             <div class="block small">
                 <strong>Fecha y Hora:</strong> ${fecha}<br>
@@ -297,7 +396,7 @@
                 <p class="fw-bold" style="color:#995E8E;margin-bottom:5px;">TIEMPO DE RUTA BASE</p>
                 <strong>Tiempo Total Estimado:</strong> ${data.tiempoRuta.total}<br>
                 <small class="d-block mt-1">(El desglose del tiempo por actividad se encuentra en cada proveedor).</small>
-                
+
                 <hr class="my-2">
 
                 <p class="fw-bold" style="color:#995E8E;margin-bottom:5px;">COSTOS FIJOS (${data.totalKm})</p>
@@ -308,7 +407,7 @@
                 • Mantenimiento: ${formatMXN(data.costoRuta.mantenimiento)}<br>
                 • Desgaste de Llantas: ${formatMXN(data.costoRuta.llantas)}<br>
                 • Depreciación: ${formatMXN(data.costoRuta.depreciacion)}<br>
-                
+
                 <small class="d-block fw-bold mt-2">Costo Promedio por Km: ${formatMXN(data.costoRuta.costoKm)}</small>
             </div>
 
@@ -324,10 +423,11 @@
             <div class="section-title">Proveedores y Productos</div>
         `;
 
-        // Proveedores con desglose
         let subtotalProductos = 0;
+
         data.proveedores.forEach(p => {
             subtotalProductos += p.subtotal;
+
             box.innerHTML += `
                 <div class="block small">
                     <strong>${p.proveedor}</strong><br>
@@ -351,8 +451,7 @@
                 </div>
             `;
         });
-        
-        // Totales
+
         box.innerHTML += `
             <div class="block small" style="border-left:4px solid #F08BB0;">
                 <p class="text-end m-0">Subtotal Productos: ${formatMXN(subtotalProductos)}</p>
@@ -370,84 +469,56 @@
         `;
     }
 
-    //Función para enviar email
     function enviarEmail() {
         if (!data) {
             alert("No hay datos disponibles para enviar.");
             return;
         }
 
-        //Abrir el modal
-        document.getElementById('emailModal').classList.add('active');
-        
-        //Prellenar con el email del cliente si existe
-        const emailInput = document.getElementById('emailInput');
-        if (data.cliente.email) {
+        abrirModal();
+
+        const emailInput = document.getElementById("emailInput");
+        if (data?.cliente?.email) {
             emailInput.value = data.cliente.email;
         }
+
+        document.getElementById("progressIndicator").classList.remove("active");
+        resetProgress();
+        restaurarBotonModal();
     }
 
-    //Función para cerrar el modal
-    function cerrarModal() {
-        document.getElementById('emailModal').classList.remove('active');
-        document.getElementById('progressIndicator').classList.remove('active');
-        
-        // Reset progress
-        ['step1', 'step2', 'step3'].forEach(id => {
-            const step = document.getElementById(id);
-            step.className = 'progress-step pending';
-            step.querySelector('.icon').textContent = '⏳';
-        });
-    }
-
-    // Función para confirmar y enviar los tickets con seguimiento
     async function confirmarEnvio() {
-        const emailDestino = document.getElementById('emailInput').value.trim();
-        
-        // ═══════════════════════════════════════════════════════════════
-        // ⏱ CONFIGURACIÓN DE DELAYS - MODIFICAR AQUÍ
-        // ═══════════════════════════════════════════════════════════════
-        // Valores en MINUTOS:
-        // - 0.1 minutos = 6 segundos (ideal para pruebas)
-        // - 1 minuto = 1 minuto
-        // - 60 minutos = 1 hora
-        // - 1440 minutos = 1 día
-        // ═══════════════════════════════════════════════════════════════
-        
-        const delayEnCamino = 0.1;    // Tiempo antes de enviar "En Camino"
-        const delayEntregado = 0.1;   // Tiempo adicional antes de enviar "Entregado"
-        
-        // Validar email
+        const emailDestino = document.getElementById("emailInput").value.trim();
+        const delayEnCamino = 0.1;
+        const delayEntregado = 0.1;
+
         if (!emailDestino) {
-            alert('Por favor ingresa un correo electrónico.');
+            alert("Por favor ingresa un correo electrónico.");
             return;
         }
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(emailDestino)) {
-            alert('Por favor ingresa un correo electrónico válido.');
+            alert("Por favor ingresa un correo electrónico válido.");
             return;
         }
 
-        // Mostrar indicador de progreso
-        const progressIndicator = document.getElementById('progressIndicator');
-        progressIndicator.classList.add('active');
-
-        // Deshabilitar botón mientras se envía
-        const btnEnviar = document.getElementById('btnEnviar');
+        const progressIndicator = document.getElementById("progressIndicator");
+        const btnEnviar = document.getElementById("btnEnviar");
         const textoOriginal = btnEnviar.textContent;
+
+        progressIndicator.classList.add("active");
         btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Enviando...';
+        btnEnviar.textContent = "Enviando...";
 
         try {
-            // Enviar petición al servidor
             const response = await fetch("https://navix-server.onrender.com/api/enviar-tickets-seguimiento", {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    emailDestino: emailDestino,
+                    emailDestino,
                     ticketData: data,
                     delays: {
                         enCamino: delayEnCamino,
@@ -456,71 +527,148 @@
                 })
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const result = await response.json();
 
             if (result.success) {
-                // Actualizar paso 1: Confirmación (enviado inmediatamente)
-                updateProgress('step1', 'sent', '✓', 'Ticket de Confirmación - Enviado');
-                
-                // Programar actualización visual del paso 2
+                updateProgress("step1", "sent", "✓", "Ticket de Confirmación - Enviado");
+                updateProgress("step2", "pending", "📦", "Ticket En Camino - Programado");
+                updateProgress("step3", "pending", "📸", "Esperando foto de entrega...");
+
                 setTimeout(() => {
-                    updateProgress('step2', 'sending', '📦', 'Ticket En Camino - Enviando...');
+                    updateProgress("step2", "sending", "📦", "Ticket En Camino - Enviando...");
                     setTimeout(() => {
-                        updateProgress('step2', 'sent', '✓', 'Ticket En Camino - Enviado');
+                        updateProgress("step2", "sent", "✓", "Ticket En Camino - Enviado");
                     }, 2000);
                 }, delayEnCamino * 60 * 1000);
-                
-                // Programar actualización visual del paso 3
-                setTimeout(() => {
-                    updateProgress('step3', 'sending', '✅', 'Ticket Entregado - Enviando...');
-                    setTimeout(() => {
-                        updateProgress('step3', 'sent', '✓', 'Ticket Entregado - Enviado');
-                        
-                        // Mensaje final
-                        setTimeout(() => {
-                            alert('✅ Todos los tickets han sido enviados exitosamente a ' + emailDestino);
-                            cerrarModal();
-                        }, 1000);
-                    }, 2000);
-                }, (delayEnCamino + delayEntregado) * 60 * 1000);
-                
-                // Mostrar mensaje informativo
-                alert(`✅ Tickets programados correctamente\n\n` +
-                      `• Confirmación: Enviado ahora\n` +
-                      `• En Camino: ${delayEnCamino} min\n` +
-                      `• Entregado: ${delayEnCamino + delayEntregado} min total\n\n` +
-                      `Puedes cerrar esta ventana. Los emails se enviarán automáticamente.`);
 
+                alert(
+                    `✅ Tickets programados correctamente\n\n` +
+                    `• Confirmación: Enviado ahora\n` +
+                    `• En Camino: ${delayEnCamino} min\n` +
+                    `• Entregado: Hasta recibir foto de entrega`
+                );
             } else {
-                alert('Error al enviar los tickets: ' + result.error);
-                progressIndicator.classList.remove('active');
+                alert("Error al enviar los tickets: " + (result.error || "desconocido"));
+                progressIndicator.classList.remove("active");
             }
 
         } catch (error) {
-            console.error('Error:', error);
-            alert('Error de conexión. Asegúrate de que el servidor esté corriendo.');
-            progressIndicator.classList.remove('active');
+            console.error("Error:", error);
+            alert("Error de conexión: " + error.message);
+            progressIndicator.classList.remove("active");
         } finally {
             btnEnviar.disabled = false;
             btnEnviar.textContent = textoOriginal;
         }
     }
 
-    // Función auxiliar para actualizar el progreso
-    function updateProgress(stepId, status, icon, text) {
-        const step = document.getElementById(stepId);
-        step.className = `progress-step ${status}`;
-        step.querySelector('.icon').textContent = icon;
-        step.querySelector('span:last-child').textContent = text;
+    function abrirModalEntrega() {
+        if (!data) {
+            alert("No hay datos del ticket.");
+            return;
+        }
+
+        const modal = document.getElementById("emailModal");
+        const progress = document.getElementById("progressIndicator");
+        const btnEnviar = document.getElementById("btnEnviar");
+        const emailInput = document.getElementById("emailInput");
+
+        modal.classList.add("active");
+        progress.classList.add("active");
+
+        if (data?.cliente?.email) {
+            emailInput.value = data.cliente.email;
+        }
+
+        updateProgress("step1", "sent", "✓", "Ticket de Confirmación - Enviado");
+        updateProgress("step2", "sent", "✓", "Ticket En Camino - Enviado");
+        updateProgress("step3", "pending", "📸", "Listo para confirmar entrega");
+
+        btnEnviar.textContent = "Confirmar Entrega";
+        btnEnviar.onclick = enviarEntregado;
+        btnEnviar.disabled = false;
     }
 
-    // Cerrar modal con tecla ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+    async function enviarEntregado() {
+        const ticketData = JSON.parse(localStorage.getItem("ticketDAMAF"));
+        const emailDestino = document.getElementById("emailInput").value.trim();
+        const btnEnviar = document.getElementById("btnEnviar");
+
+        if (!ticketData) {
+            alert("No se encontró la información del ticket.");
+            return;
+        }
+
+        if (!emailDestino) {
+            alert("Debes ingresar un correo.");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailDestino)) {
+            alert("Correo electrónico no válido.");
+            return;
+        }
+
+        btnEnviar.disabled = true;
+        updateProgress("step3", "sending", "📤", "Enviando ticket de entrega...");
+
+        try {
+            const response = await fetch("https://navix-server.onrender.com/api/enviar-ticket-entregado", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    emailDestino: emailDestino,
+                    ticketData: ticketData,
+                    fotoEntrega: fotoBase64
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                updateProgress("step3", "sent", "✓", "Ticket Entregado - Enviado");
+
+                setTimeout(() => {
+                    alert("✅ Entrega confirmada");
+                    cerrarModal();
+                }, 1000);
+            } else {
+                updateProgress("step3", "pending", "⚠️", "Error al enviar ticket entregado");
+                alert("Error al enviar ticket: " + (result.error || "desconocido"));
+                btnEnviar.disabled = false;
+            }
+
+        } catch (error) {
+            console.error("Error al enviar email:", error);
+            updateProgress("step3", "pending", "⚠️", "Error al enviar ticket entregado");
+            alert("Error enviando ticket: " + error.message);
+            btnEnviar.disabled = false;
+        }
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
             cerrarModal();
         }
     });
+
+    llenarTicket();
 </script>
+
+<script src="script-navix.js"></script>
 
 </body>
 </html>
