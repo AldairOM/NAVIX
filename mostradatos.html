@@ -237,6 +237,57 @@
         font-size:14px;
     }
 
+    @media print {
+    body {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .container,
+    .row,
+    .col-lg-7,
+    .ticket {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .ticket {
+        box-shadow: none !important;
+        border-left: none !important;
+        border-radius: 0 !important;
+        padding: 20px !important;
+    }
+
+    /* Oculta todo el panel derecho al imprimir */
+    .col-lg-4,
+    .photo-panel,
+    #Photo,
+    #btnEntrega,
+    .form-control,
+    input[type="file"] {
+        display: none !important;
+    }
+
+    /* Oculta botones del ticket */
+    .d-flex.gap-2.mt-3 {
+        display: none !important;
+    }
+
+    /* Si hay imagen dentro del ticket, que se vea completa */
+    #ticketData img {
+        max-width: 120px !important;
+        max-height: 120px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto 15px auto !important;
+        border-radius: 12px !important;
+    }
+}
+
 </style>
 </head>
 <body>
