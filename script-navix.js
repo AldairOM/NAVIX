@@ -28,16 +28,19 @@ function agotado() {
 //FOTO / PREVISUALIZACIÓN
 //===============================
 
-const inputFoto = document.querySelector("#Photo");
+const inputFotoCliente = document.querySelector("#clientPhoto");
+const inputFotoEntrega = document.querySelector("#Photo");
+
 const photoBox = document.querySelector("#photoBox");
 const btnEntrega = document.getElementById("btnEntrega");
 
 let fotoClienteBase64 = null;
 let fotoEntregaBase64 = null;
 
-if (inputFoto) {
-    inputFoto.addEventListener("change", () => {
-        const file = inputFoto.files?.[0];
+// FOTO DEL CLIENTE - menuregistro.html
+if (inputFotoCliente) {
+    inputFotoCliente.addEventListener("change", () => {
+        const file = inputFotoCliente.files?.[0];
         if (!file) return;
 
         const url = URL.createObjectURL(file);
@@ -49,21 +52,41 @@ if (inputFoto) {
             `;
         }
 
+        fotoClienteBase64 = null;
+
         const reader = new FileReader();
         reader.onload = function (e) {
-            const base64 = e.target.result;
-
-            // Si existe botón de entrega, asumimos que es la página de entrega
-            if (btnEntrega) {
-                fotoEntregaBase64 = base64;
-                btnEntrega.disabled = false;
-            } else {
-                fotoClienteBase64 = base64;
-            }
-
-            console.log("Foto cargada correctamente");
+            fotoClienteBase64 = e.target.result;
+            console.log("Foto cliente cargada");
         };
+        reader.readAsDataURL(file);
+    });
+}
 
+// FOTO DE ENTREGA - mostradatos.html
+if (inputFotoEntrega && btnEntrega) {
+    inputFotoEntrega.addEventListener("change", () => {
+        const file = inputFotoEntrega.files?.[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+
+        if (photoBox) {
+            photoBox.innerHTML = `
+                <img src="${url}" 
+                     style="width:100%;height:100%;object-fit:cover;border-radius:12px;">
+            `;
+        }
+
+        fotoEntregaBase64 = null;
+        btnEntrega.disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            fotoEntregaBase64 = e.target.result;
+            btnEntrega.disabled = false;
+            console.log("Foto entrega cargada");
+        };
         reader.readAsDataURL(file);
     });
 }
