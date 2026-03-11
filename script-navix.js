@@ -32,30 +32,36 @@ const inputFoto = document.querySelector("#Photo");
 const photoBox = document.querySelector("#photoBox");
 const btnEntrega = document.getElementById("btnEntrega");
 
-let fotoBase64 = null;
+let fotoClienteBase64 = null;
+let fotoEntregaBase64 = null;
 
 if (inputFoto) {
     inputFoto.addEventListener("change", () => {
         const file = inputFoto.files?.[0];
         if (!file) return;
 
+        const url = URL.createObjectURL(file);
+
+        if (photoBox) {
+            photoBox.innerHTML = `
+                <img src="${url}" 
+                     style="width:100%;height:100%;object-fit:cover;border-radius:12px;">
+            `;
+        }
+
         const reader = new FileReader();
-
         reader.onload = function (e) {
-            fotoBase64 = e.target.result;
+            const base64 = e.target.result;
 
-            if (photoBox) {
-                photoBox.innerHTML = `
-                    <img 
-                        src="${fotoBase64}" 
-                        style="width:100%; height:100%; object-fit:cover; border-radius:12px;"
-                    >
-                `;
-            }
-
+            // Si existe botón de entrega, asumimos que es la página de entrega
             if (btnEntrega) {
+                fotoEntregaBase64 = base64;
                 btnEntrega.disabled = false;
+            } else {
+                fotoClienteBase64 = base64;
             }
+
+            console.log("Foto cargada correctamente");
         };
 
         reader.readAsDataURL(file);
@@ -371,20 +377,28 @@ function actualizarTotales() {
 
 document.querySelector("#generateBtn")?.addEventListener("click", () => {
     const cliente = {
-        nombre: document.querySelector("#clientName")?.value || "",
-        telefono: document.querySelector("#clientPhone")?.value || "",
-        email: document.querySelector("#clientEmail")?.value || "",
-        direccion: document.querySelector("#clientAddress")?.value || "",
-        notas: document.querySelector("#clientNotes")?.value || ""
+        nombre: document.querySelector("#clientName")?.value,
+        telefono: document.querySelector("#clientPhone")?.value,
+        email: document.querySelector("#clientEmail")?.value,
+        direccion: document.querySelector("#clientAddress")?.value,
+        notas: document.querySelector("#clientNotes")?.value
     };
 
-    if (!cliente.nombre.trim()) {
+    if (!cliente.nombre) {
         alert("Por favor llena el nombre del cliente.");
         return;
     }
 
+    const inputFoto = document.querySelector("#Photo");
+    const hayArchivoSeleccionado = inputFoto?.files && inputFoto.files.length > 0;
+
+    if (hayArchivoSeleccionado && !fotoBase64) {
+        alert("Espera un momento a que la foto termine de cargarse.");
+        return;
+    }
+
     const proveedoresActivos = proveedores.filter(id =>
-        document.querySelector(`.prov-card[data-id="${id}"]`)?.classList.contains("active")
+        document.querySelector(`.prov-card[data-id="${id}"]`).classList.contains("active")
     );
 
     if (proveedoresActivos.length === 0) {
@@ -392,34 +406,34 @@ document.querySelector("#generateBtn")?.addEventListener("click", () => {
         return;
     }
 
-    const costoRutaAcumulado = proveedoresActivos.length > 0 ? costoRuta.totalBase : 0;
-
+    let costoRutaAcumulado = proveedoresActivos.length > 0 ? costoRuta.totalBase : 0;
     let totalGeneralTemporal = 0;
-    const productosArray = [];
+    let productosArray = [];
 
     proveedoresActivos.forEach(id => {
-        const productos = [...document.querySelectorAll(`input[data-prov="${id}"]:checked`)].map(c => {
-            const prodName = c.value;
-            const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g, "")}`;
-            const wrapper = c.closest("label")?.querySelector(`#${wrapperId}`);
+        const productos = [...document.querySelectorAll(`input[data-prov="${id}"]:checked`)]
+            .map(c => {
+                const prodName = c.value;
+                const wrapperId = `qty-wrapper-${btoa(prodName).replace(/=/g,'')}`;
+                const wrapper = c.closest("label")?.querySelector(`#${wrapperId}`);
+                let qty = 1;
 
-            let qty = 1;
-            if (wrapper) {
-                const inp = wrapper.querySelector("input[type='number']");
-                if (inp) qty = parseInt(inp.value, 10) || 1;
-            }
+                if (wrapper) {
+                    const inp = wrapper.querySelector("input[type='number']");
+                    if (inp) qty = parseInt(inp.value, 10) || 1;
+                }
 
-            const price = preciosPorCaja[prodName] || 0;
-            const totalProd = price * qty;
+                const price = preciosPorCaja[prodName] || 0;
+                const totalProd = price * qty;
 
-            return {
-                nombre: prodName,
-                temperatura: temperaturas[prodName],
-                precioPorCaja: price,
-                cajas: qty,
-                total: totalProd
-            };
-        });
+                return {
+                    nombre: prodName,
+                    temperatura: temperaturas[prodName],
+                    precioPorCaja: price,
+                    cajas: qty,
+                    total: totalProd
+                };
+            });
 
         const subtotalProv = productos.reduce((s, x) => s + x.total, 0);
         totalGeneralTemporal += subtotalProv;
@@ -444,8 +458,10 @@ document.querySelector("#generateBtn")?.addEventListener("click", () => {
         tiempoRuta,
         costoRutaAcumulado,
         totalGeneral: totalGeneralTemporal + costoRutaAcumulado,
-        fotoCliente: fotoBase64
+        fotoCliente: fotoClienteBase64 || null
     };
+
+    console.log("Registro guardado:", registro);
 
     localStorage.setItem("ticketDAMAF", JSON.stringify(registro));
     window.location.href = "mostradatos.html";
