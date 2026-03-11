@@ -29,7 +29,7 @@ function agotado() {
 //===============================
 
 const inputFotoCliente = document.querySelector("#clientPhoto");
-const inputFotoEntrega = document.querySelector("#Photo");
+const inputFotoEntrega = document.querySelector("#EntregaPhoto");
 
 const photoBox = document.querySelector("#photoBox");
 const btnEntrega = document.getElementById("btnEntrega");
@@ -37,7 +37,7 @@ const btnEntrega = document.getElementById("btnEntrega");
 let fotoClienteBase64 = null;
 let fotoEntregaBase64 = null;
 
-// FOTO DEL CLIENTE - menuregistro.html
+//FOTO DEL CLIENTE
 if (inputFotoCliente) {
     inputFotoCliente.addEventListener("change", () => {
         const file = inputFotoCliente.files?.[0];
@@ -63,7 +63,7 @@ if (inputFotoCliente) {
     });
 }
 
-// FOTO DE ENTREGA - mostradatos.html
+//FOTO DE ENTREGA
 if (inputFotoEntrega && btnEntrega) {
     inputFotoEntrega.addEventListener("change", () => {
         const file = inputFotoEntrega.files?.[0];
